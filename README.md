@@ -8,7 +8,7 @@ A high-performance system for efficiently reading YouTube Live Chat messages.
 ## 🚀 Features
 
 - **Real-time Processing**: Reading YouTube Live Chat messages with the most efficient method, [streamList](https://developers.google.com/youtube/v3/live/docs/liveChatMessages/streamList)
-- **Scalable & High Available**: Horizontally scalable reading workers; if one fails, another one takes over immediately.
+- **Scalable & High Available**: Horizontally scalable reading workers; if one fails, another one takes over immediately
 - **Observable**: Comprehensive metrics, tracing, and logging
 - **Kubernetes-Native**: Designed to run in containerized environments
 
