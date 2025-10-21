@@ -1,0 +1,39 @@
+# https://github.com/grafana/helm-charts/tree/main/charts/grafana
+
+persistence:
+  enabled: true
+  size: 10Gi
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+     - name: Prometheus
+       type: prometheus
+       access: proxy
+       orgId: 1
+       uid: prometheus
+       url: http://prometheus-server.observability.svc.cluster.local
+       withCredentials: false
+       isDefault: true
+       editable: true
+
+     - name: Loki
+       type: loki
+       access: proxy
+       orgId: 1
+       uid: loki
+       url: http://loki-gateway.observability.svc.cluster.local
+       withCredentials: false
+       isDefault: false
+       editable: true
+
+     - name: Tempo
+       type: tempo
+       access: proxy
+       orgId: 1
+       uid: tempo
+       url: http://tempo.observability.svc.cluster.local:3200
+       withCredentials: false
+       isDefault: false
+       editable: true

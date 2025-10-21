@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: finder
+  namespace: youtube-chat-reader
+spec:
+  timeZone: 'Europe/Athens'
+  schedule: "0 10,16 * * *"
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      template:
+        spec:
+          containers:
+            - name: api
+              imagePullPolicy: Never
+              image: ghcr.io/natsoman/finder:local
+              env:
+                # Comma-separated list of YouTube channel IDs to monitor
+                - name: YOUTUBE_CHANNELS
+                  value: ""
+              envFrom:
+                - configMapRef:
+                    name: common
+                - secretRef:
+                    name: common
+                - secretRef:
+                    name: finder
+          restartPolicy: Never

@@ -1,0 +1,2 @@
+mongodb:
+  uri: "mongodb://mongodb-0.replica-set.mongo.svc.cluster.local:27017"

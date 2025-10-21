@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "snippet": {
+        "publishedAt": "x"
+      },
+      "liveStreamingDetails": {
+        "scheduledStartTime": "2023-01-01T12:00:00Z",
+        "activeLiveChatId": "live_chat_1"
+      }
+    }
+  ]
+}

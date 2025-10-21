@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GOMODULES: ./apps/finder/... ./apps/reader/... ./pkg/kafka/... ./pkg/mongo/... ./pkg/otel/...
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.25
+          cache-dependency-path: |
+            apps/finder/go.sum
+            apps/reader/go.sum
+            pkg/kafka/go.sum
+            pkg/mongo/go.sum
+            pkg/otel/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.4
+          args: ${{ env.GOMODULES }}
+
+      - name: Run go test
+        run: go test -race -tags=integration -coverprofile=coverage.txt -count=1 ${{ env.GOMODULES }}
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: natsoman/youtube-chat-reader
+
+  release:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version_tag: ${{ steps.semver.outputs.next }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Calculate next SemVer
+        id: semver
+        uses: ietf-tools/semver-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref_name }}
+          skipInvalidTags: true
+          maxTagsToFetch: 10
+          patchList: 'build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test'
+
+      - name: Create release
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          makeLatest: true
+          generateReleaseNotes: true
+          tag: ${{ steps.semver.outputs.next }}
+
+  build-and-push:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    strategy:
+      matrix:
+        service: [ finder, reader-consumer, reader-worker ]
+    env:
+      REGISTRY: ghcr.io
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up QEMU (for multi-arch builds)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Log in to Docker registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}
+          tags: |
+            type=raw,value=${{ needs.release.outputs.version_tag }}
+            type=raw,value=latest
+            type=sha,enable=true
+
+      - name: Set GOTARGET variable
+        if: matrix.service == 'finder'
+        run: echo "GOTARGET=apps/finder/cmd/job/main.go" >> $GITHUB_ENV
+
+      - name: Set GOTARGET variable
+        if: matrix.service == 'reader-consumer'
+        run: echo "GOTARGET=apps/reader/cmd/consumer/main.go" >> $GITHUB_ENV
+
+      - name: Set GOTARGET variable
+        if: matrix.service == 'reader-worker'
+        run: echo "GOTARGET=apps/reader/cmd/worker/main.go" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker images
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./build/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=${{ needs.release.outputs.version_tag }}-${{ github.sha }}
+            GOTARGET=${{ env.GOTARGET }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}:latest
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}:latest,mode=max
+
+#        TODO: enable it when repo is public
+#      - name: Generate artifact attestation
+#        uses: actions/attest-build-provenance@v3
+#        with:
+#          subject-name: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}
+#          subject-digest: ${{ steps.push.outputs.digest }}
+#          push-to-registry: true

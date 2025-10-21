@@ -1,0 +1,55 @@
+version: "2"
+linters:
+  enable:
+    - bodyclose
+    - dupl
+    - gocritic
+    - gocyclo
+    - gosec
+    - lll
+    - makezero
+    - prealloc
+    - revive
+    - sloglint
+    - errname
+    - funcorder
+    - misspell
+    - wsl_v5
+  settings:
+    gosec:
+      excludes:
+        - G115
+    lll:
+      line-length: 120
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+    sloglint:
+      kv-only: true
+      no-mixed-args: true
+      context: scope
+      static-msg: true
+      key-naming-case: snake
+      msg-style: capitalized
+      forbidden-keys:
+        - time
+        - level
+        - msg
+        - source
+formatters:
+  enable:
+    - goimports
+    - gofmt
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/natsoman/youtube-chat-reader/apps/reader
+        - github.com/natsoman/youtube-chat-reader/apps/finder
+        - github.com/natsoman/youtube-chat-reader/pkg/otel
+        - github.com/natsoman/youtube-chat-reader/pkg/mongo
+        - github.com/natsoman/youtube-chat-reader/pkg/kafka
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

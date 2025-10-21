@@ -1,0 +1,10 @@
+{
+  "items": [
+    {
+      "liveStreamingDetails": {
+        "scheduledStartTime": "x",
+        "activeLiveChatId": "live_chat_2"
+      }
+    }
+  ]
+}

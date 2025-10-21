@@ -1,0 +1,45 @@
+{
+  "items": [
+    {
+      "snippet": {
+        "title": "Missing liveStreamingDetails"
+      }
+    },
+    {
+      "snippet": {
+        "title": "Empty liveStreamingDetails.activeLiveChatId"
+      },
+      "liveStreamingDetails": {
+        "scheduledStartTime": "2023-01-01T12:00:00Z",
+        "activeLiveChatId": ""
+      }
+    },
+    {
+      "snippet": {
+        "title": "Empty liveStreamingDetails.scheduledStartTime"
+      },
+      "liveStreamingDetails": {
+        "scheduledStartTime": "",
+        "activeLiveChatId": "live_chat_id"
+      }
+    },
+    {
+      "snippet": {
+        "title": "Empty liveStreamingDetails.scheduledStartTime"
+      },
+      "liveStreamingDetails": {
+        "scheduledStartTime": "",
+        "activeLiveChatId": "live_chat_id"
+      }
+    },
+    {
+      "snippet": {
+        "title": "liveStreamingDetails.actualEndTime is set"
+      },
+      "liveStreamingDetails": {
+        "scheduledStartTime": "",
+        "actualEndTime": "whatever"
+      }
+    }
+  ]
+}

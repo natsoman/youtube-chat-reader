@@ -1,0 +1,10 @@
+.git
+.github
+Makefile
+LICENCE
+deploy
+build
+*.yaml
+*.md
+*.json
+.gitignore

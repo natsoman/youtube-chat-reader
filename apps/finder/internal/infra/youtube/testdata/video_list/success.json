@@ -1,0 +1,40 @@
+{
+  "items": [
+    {
+      "id": "video1",
+      "snippet": {
+        "publishedAt": "2023-01-01T00:00:00Z",
+        "channelId": "channel1",
+        "title": "Test Stream",
+        "thumbnails": {
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/video1/maxresdefault.jpg"
+          }
+        },
+        "channelTitle": "Test Channel"
+      },
+      "liveStreamingDetails": {
+        "scheduledStartTime": "2023-01-01T12:00:00Z",
+        "activeLiveChatId": "live_chat_1"
+      }
+    },
+    {
+      "id": "video2",
+      "snippet": {
+        "publishedAt": "2023-01-01T00:00:00Z",
+        "channelId": "channel2",
+        "title": "Test Stream",
+        "thumbnails": {
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/video2/maxresdefault.jpg"
+          }
+        },
+        "channelTitle": "Test Channel 2"
+      },
+      "liveStreamingDetails": {
+        "scheduledStartTime": "2023-01-01T12:00:00Z",
+        "activeLiveChatId": "live_chat_2"
+      }
+    }
+  ]
+}

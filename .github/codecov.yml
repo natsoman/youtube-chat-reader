@@ -1,0 +1,7 @@
+ignore:
+  - "apps/reader/internal/infra/youtube/stream_list.pb.go"
+  - "apps/reader/internal/infra/youtube/stream_list_grpc.pb.go"
+  - "apps/reader/cmd/"
+  - "apps/finder/cmd/"
+  - "apps/finder/internal/infra/cnf.go"
+  - "apps/reader/internal/infra/cnf.go"

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reader-worker
+  namespace: youtube-chat-reader
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: reader-worker
+  template:
+    metadata:
+      labels:
+        app: reader-worker
+    spec:
+      containers:
+        - name: reader-worker
+          imagePullPolicy: Never
+          image: ghcr.io/natsoman/reader-worker:local
+          env:
+              # How far in advance to start reading YouTube live streams, must be gte a minute and lte an hour
+            - name: ADVANCE_START
+              value: "15m"
+              # Maximum interval between retry attempts, must be gte a sec and lte a minute
+            - name: MAX_RETRY_INTERVAL
+              value: "5s"
+            - name: YOUTUBE_GRPC_TARGET
+              value: "dns:///youtube.googleapis.com:443"
+            - name: REDIS_ADDR
+              value: "redis-cluster-0.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-1.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-2.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-3.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-4.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-5.redis-cluster-headless.redis.svc.cluster.local:6379"
+          envFrom:
+            - configMapRef:
+                name: common
+            - secretRef:
+                name: common
+            - secretRef:
+                name: worker
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+            requests:
+              cpu: "250m"
+              memory: "128Mi"

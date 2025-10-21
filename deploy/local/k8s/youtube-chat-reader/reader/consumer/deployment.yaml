@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reader-consumer
+  namespace: youtube-chat-reader
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: reader-consumer
+  template:
+    metadata:
+      labels:
+        app: reader-consumer
+    spec:
+      containers:
+        - name: reader-consumer
+          imagePullPolicy: Never
+          image: ghcr.io/natsoman/reader-consumer:local
+          envFrom:
+            - configMapRef:
+                name: common
+            - secretRef:
+                name: common
+          resources:
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
