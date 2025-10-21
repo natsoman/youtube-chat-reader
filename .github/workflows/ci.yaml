@@ -145,10 +145,9 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}:latest
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}:latest,mode=max
 
-#        TODO: enable it when repo is public
-#      - name: Generate artifact attestation
-#        uses: actions/attest-build-provenance@v3
-#        with:
-#          subject-name: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}
-#          subject-digest: ${{ steps.push.outputs.digest }}
-#          push-to-registry: true
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.service }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
