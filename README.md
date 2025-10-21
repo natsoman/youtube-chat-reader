@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/natsoman/youtube-chat-reader/actions/workflows/ci.yaml/badge.svg)](https://github.com/natsoman/youtube-chat-reader/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/natsoman/youtube-chat-reader/graph/badge.svg?token=QXORZL6UE8)](https://codecov.io/gh/natsoman/youtube-chat-reader)
+[![Go Report Card](https://goreportcard.com/badge/github.com/natsoman/youtube-chat-reader/apps/reader)](https://goreportcard.com/report/github.com/natsoman/youtube-chat-reader/apps/reader)
 
 A high-performance system for efficiently reading YouTube Live Chat messages.
 
