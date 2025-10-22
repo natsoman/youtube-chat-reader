@@ -108,7 +108,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 		// Given
 		const publishedAt = "2023-01-01T12:00:00Z"
 
-		lsp := newLiveStream(t)
+		lsp := newLiveStreamProgress(t)
 		resp := &mockServerStreamingClient{
 			responses: []*youtube.LiveChatMessageListResponse{
 				{
@@ -206,7 +206,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			recvThrottle <- time.Now()
 		}()
 
-		msgChan, _ := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		msgChan, _ := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -238,7 +238,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			streamListThrottle <- time.Now()
 		}()
 
-		_, errChan := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		_, errChan := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -266,7 +266,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			streamListThrottle <- time.Now()
 		}()
 
-		_, errChan := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		_, errChan := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -294,7 +294,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			streamListThrottle <- time.Now()
 		}()
 
-		_, errChan := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		_, errChan := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -323,7 +323,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			streamListThrottle <- time.Now()
 		}()
 
-		_, errChan := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		_, errChan := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -359,7 +359,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			recvThrottle <- time.Now()
 		}()
 
-		_, errChan := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		_, errChan := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -405,13 +405,13 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			recvThrottle <- time.Now()
 		}()
 
-		_, errChan := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		_, errChan := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
 		case err := <-errChan:
 			assert.Error(t, err)
-		case <-time.After(time.Hour):
+		case <-time.After(time.Second):
 			t.Fatal("timeout waiting for error")
 		}
 	})
@@ -457,7 +457,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			recvThrottle <- time.Now()
 		}()
 
-		_, errChan := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		_, errChan := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -486,7 +486,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			streamListThrottle <- time.Now()
 		}()
 
-		msgChan, _ := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		msgChan, _ := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -514,7 +514,7 @@ func TestGRPCClient_StreamChatMessages(t *testing.T) {
 			streamListThrottle <- time.Now()
 		}()
 
-		_, errChan := client.StreamChatMessages(t.Context(), newLiveStream(t))
+		_, errChan := client.StreamChatMessages(t.Context(), newLiveStreamProgress(t))
 
 		// Then
 		select {
@@ -608,7 +608,7 @@ func setupTest(t *testing.T) (*youtube.StreamChatMessagesGRPCClient, *testDeps) 
 	return client, deps
 }
 
-func newLiveStream(t *testing.T) *domain.LiveStreamProgress {
+func newLiveStreamProgress(t *testing.T) *domain.LiveStreamProgress {
 	t.Helper()
 
 	lsp, err := domain.NewLiveStreamProgress("live-stream-1", "chat-1", time.Now())
