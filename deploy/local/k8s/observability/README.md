@@ -2,14 +2,14 @@
 
 ## prerequisites
 
-```bash
+```shell
   helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
   helm repo add grafana https://grafana.github.io/helm-charts
   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
   helm repo update
 ```
 
-```bash
+```shell
   kubectl create namespace observability
 ```
 
@@ -20,19 +20,19 @@ The OpenTelemetry Collector will receive telemetry data and forward it to the ap
 - Metrics: Prometheus
 - Traces: Tempo
 
-```bash
+```shell
   helm upgrade -i otel-collector open-telemetry/opentelemetry-collector -f otel-collector-values.yaml -n observability
 ```
 
 ## loki
 
-```bash
+```shell
   helm upgrade -i loki grafana/loki -f loki-values.yaml -n observability
 ```
 
 ## tempo
 
-```bash
+```shell
   helm upgrade -i tempo grafana/tempo -n observability
 ```
 
@@ -40,7 +40,7 @@ The OpenTelemetry Collector will receive telemetry data and forward it to the ap
 
 ## prometheus
 
-```bash
+```shell
   helm upgrade -i prometheus prometheus-community/prometheus -f prometheus-values.yaml -n observability
 ```
 
@@ -48,7 +48,7 @@ Access Prometheus UI at: http://localhost:9090
 
 ## grafana
 
-```bash
+```shell
   helm upgrade -i grafana grafana/grafana -f grafana-values.yaml -n observability
 ```
 
@@ -56,6 +56,6 @@ Access Grafana at: http://grafana.observability.svc.cluster.local/
 
 - Username: `admin`
 - Password:
-```bash
+```shell
   kubectl get secret -n observability grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```

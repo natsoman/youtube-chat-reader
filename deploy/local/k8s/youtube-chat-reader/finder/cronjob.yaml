@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: finder
-  namespace: youtube-chat-reader
+  namespace: youtube
 spec:
   timeZone: 'Europe/Athens'
   schedule: "0 10,16 * * *"

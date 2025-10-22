@@ -1,12 +1,12 @@
 # instructions
 
-```bash
+```shell
     kubectl create namespace mongo
     kubectl apply -f service.yaml
     kubectl apply -f statefulset.yaml
 ```
 
-```bash
+```shell
     chmod +x ./init-replicaset.sh && ./init-replicaset.sh
 ```
 

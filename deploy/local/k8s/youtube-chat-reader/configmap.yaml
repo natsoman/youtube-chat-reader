@@ -2,11 +2,11 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: common
-  namespace: youtube-chat-reader
+  namespace: youtube
 data:
   LOG_LEVEL: debug
-  MONGODB_DATABASE: "youtube-chat-reader"
+  MONGODB_DATABASE: "youtube"
   OTEL_SAMPLE_RATE: "1.0"
   OTEL_COLLECTOR_GRPC_ADDR: "otel-collector-opentelemetry-collector.observability.svc.cluster.local:4317"
-  KAFKA_BROKERS: "youtube-chat-reader-dual-role-0.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092,youtube-chat-reader-dual-role-1.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092,youtube-chat-reader-dual-role-2.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092"
+  KAFKA_BROKERS: "youtube-dual-role-0.youtube-kafka-brokers.kafka.svc.cluster.local:9092,youtube-dual-role-1.youtube-kafka-brokers.kafka.svc.cluster.local:9092,youtube-dual-role-2.youtube-kafka-brokers.kafka.svc.cluster.local:9092"
   KAFKA_TOPICS_LIVE_STREAM_FOUND_V1: "live_stream.found.v1"

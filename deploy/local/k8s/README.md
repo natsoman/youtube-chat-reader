@@ -4,7 +4,7 @@
 
 Use [Telepresence](https://telepresence.io) to enable access to Kubernetes services from your Docker host.
 
-```bash
+```shell
     telepresence helm install
     kubectl rollout status deploy/traffic-manager -n ambassador
     telepresence connect

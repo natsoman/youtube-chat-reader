@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: reader-consumer
-  namespace: youtube-chat-reader
+  namespace: youtube
 spec:
   replicas: 3
   selector:

@@ -2,12 +2,12 @@
 
 Run the following comment to install Redis cluster to your local Kubernetes cluster:
 
-```bash
-    helm upgrade --install redis-cluster \
-      --set usePassword=false \
-      --namespace redis \
-      --create-namespace \
-      oci://registry-1.docker.io/bitnamicharts/redis-cluster
+```shell
+  helm upgrade --install redis-cluster \
+    --set usePassword=false \
+    --namespace redis \
+    --create-namespace \
+    oci://registry-1.docker.io/bitnamicharts/redis-cluster
 ```
 
 Access Redis instances using:

@@ -4,7 +4,7 @@ metadata:
   name: dual-role
   namespace: kafka
   labels:
-    strimzi.io/cluster: youtube-chat-reader
+    strimzi.io/cluster: youtube
 spec:
   replicas: 3
   roles:

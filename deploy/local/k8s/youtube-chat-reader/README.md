@@ -15,7 +15,7 @@ the local Kubernetes cluster.
 
 Apply all recursively:
 
-```bash
-  kubectl create namespace youtube-chat-reader
+```shell
+  kubectl create namespace youtube
   kubectl apply -R -f .
 ```
