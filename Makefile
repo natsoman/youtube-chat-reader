@@ -2,7 +2,6 @@ REGISTRY      ?= ghcr.io
 VERSION       ?= local
 DOCKERFILE    ?= build/Dockerfile
 NAMESPACE     ?= natsoman
-PUSH_LATEST   ?= 0
 
 IMAGE := $(REGISTRY)/$(NAMESPACE)/$(IMAGE_NAME)
 GOMODULES := ./apps/finder/... ./apps/reader/... ./pkg/kafka/... ./pkg/mongo/... ./pkg/otel/...
