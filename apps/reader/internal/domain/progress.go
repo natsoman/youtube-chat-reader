@@ -83,3 +83,8 @@ func (lsp *LiveStreamProgress) Finish(at time.Time, reason string) {
 	lsp.finishedAt = &at
 	lsp.finishReason = reason
 }
+
+// IsFinished indicates if the live stream progress has been finished.
+func (lsp *LiveStreamProgress) IsFinished() bool {
+	return lsp.finishedAt != nil
+}

@@ -309,9 +309,8 @@ func TestLiveStreamReader_Read(t *testing.T) {
 		reader.Read(ctx)
 	})
 
-	t.Run("successfully store chat messages and finishes progress", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(t.Context(), timeout)
-		defer cancel()
+	t.Run("successfully store chat messages and finishes progress on empty next page token", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
 
 		reader, deps := setupTest(t, app.WithMaxRetryInterval(time.Second), app.WithAdvanceStart(time.Minute))
 
@@ -335,7 +334,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), time.Minute).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(ctx, "id").
+				Lock(gomock.Any(), "id").
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), lsp).
@@ -354,7 +353,11 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				After(deps.authorRepo.EXPECT().
 					Upsert(gomock.Any(), cm.Authors())),
 			deps.locker.EXPECT().
-				Release(gomock.Any(), "id"),
+				Release(gomock.Any(), "id").
+				DoAndReturn(func(_ context.Context, _ string) error {
+					cancel()
+					return nil
+				}),
 		)
 
 		// When

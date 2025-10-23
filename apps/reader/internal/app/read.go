@@ -228,6 +228,10 @@ func (lsr *LiveStreamReader) readLiveStream(ctx context.Context, l *slog.Logger,
 				"bans", len(cm.Bans()),
 				"authors", len(cm.Authors()),
 			)
+
+			if lsp.IsFinished() {
+				return nil
+			}
 		case err, ok := <-errChan:
 			if !ok {
 				l.DebugContext(ctx, "Streaming error channel closed")
@@ -243,7 +247,7 @@ func (lsr *LiveStreamReader) readLiveStream(ctx context.Context, l *slog.Logger,
 			lsp.Finish(lsr.clock.Now(), err.Error())
 
 			if err = lsr.progressRepo.Upsert(ctx, lsp); err != nil {
-				return fmt.Errorf("save live stream progress: %v", err)
+				return fmt.Errorf("upsert live stream progress: %v", err)
 			}
 
 			return nil
@@ -296,7 +300,7 @@ func (lsr *LiveStreamReader) store(ctx context.Context, lsp *domain.LiveStreamPr
 	// Store the next page token only after chat messages have been successfully persisted,
 	// ensuring that no messages are lost.
 	if err := lsr.progressRepo.Upsert(ctx, lsp); err != nil {
-		return fmt.Errorf("save live stream progress: %v", err)
+		return fmt.Errorf("upsert live stream progress: %v", err)
 	}
 
 	return nil

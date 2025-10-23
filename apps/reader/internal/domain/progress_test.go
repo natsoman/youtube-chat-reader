@@ -103,3 +103,18 @@ func TestLiveStreamProgress_Finish(t *testing.T) {
 	assert.Equal(t, finishTime, *lsp.FinishedAt())
 	assert.Equal(t, "stream ended", lsp.FinishReason())
 }
+
+func TestLiveStreamProgress_IsFinished(t *testing.T) {
+	t.Parallel()
+
+	lsp, err := domain.NewLiveStreamProgress("id", "chatId", time.Now().UTC())
+	assert.NoError(t, err)
+
+	// Initially not finished
+	assert.False(t, lsp.IsFinished())
+
+	// Finish
+	lsp.Finish(time.Now().UTC(), "stream ended")
+
+	assert.True(t, lsp.IsFinished())
+}
