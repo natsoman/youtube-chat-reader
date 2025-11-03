@@ -22,7 +22,6 @@ import (
 )
 
 var (
-	_mongoC  *mongodb.MongoDBContainer
 	_mongoDB *mongo.Database
 
 	_liveStreamRepo *inframongo.LiveStreamRepository
@@ -32,8 +31,7 @@ var (
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	var err error
-	_mongoC, err = mongodb.Run(
+	mongoContainer, err := mongodb.Run(
 		ctx,
 		"mongo:8.0",
 		mongodb.WithReplicaSet("rs0"),
@@ -41,14 +39,15 @@ func TestMain(m *testing.M) {
 			wait.ForLog("Waiting for connections").WithStartupTimeout(time.Second*15),
 		),
 	)
+
+	defer func() {
+		_ = testcontainers.TerminateContainer(mongoContainer)
+	}()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func() {
-		_ = testcontainers.TerminateContainer(_mongoC)
-	}()
 
-	mongoURI, err := _mongoC.ConnectionString(ctx)
+	mongoURI, err := mongoContainer.ConnectionString(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

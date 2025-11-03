@@ -9,7 +9,7 @@ A high-performance system for efficiently reading YouTube Live Chat messages.
 ## 🚀 Features
 
 - **Real-time Processing**: Reading YouTube Live Chat messages with the most efficient method, [streamList](https://developers.google.com/youtube/v3/live/docs/liveChatMessages/streamList)
-- **Scalable & High Available**: Horizontally scalable reading workers; if one fails, another one takes over immediately
+- **Scalable & High Available**: Horizontally scalable reading workers; if one fails, another one takes over almost immediately
 - **Observable**: Comprehensive metrics, tracing, and logging
 - **Kubernetes-Native**: Designed to run in containerized environments
 
@@ -32,7 +32,7 @@ A multi-binary service with the following components:
 
 #### Worker
 - Reads and stores live chat messages using YouTube’s [streamList](https://developers.google.com/youtube/v3/live/docs/liveChatMessages/streamList)
-- Distributed locking with Redis to ensure exactly-once live stream processing
+- Distributed locking with Etcd to ensure exactly-once live stream processing
 - Runs as a Kubernetes [Deployment](./deploy/local/k8s/youtube-chat-reader/reader/worker/deployment.yaml)
 
 ## 🚀 Quick Start

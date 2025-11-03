@@ -18,15 +18,13 @@ import (
 )
 
 var (
-	mongoC  *mongodb.MongoDBContainer
-	mongoDB *mongo.Database
+	_mongoDB *mongo.Database
 )
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	var err error
-	mongoC, err = mongodb.Run(
+	mongoContainer, err := mongodb.Run(
 		ctx,
 		"mongo:6.0",
 		mongodb.WithReplicaSet("rs0"),
@@ -34,14 +32,15 @@ func TestMain(m *testing.M) {
 			wait.ForLog("Waiting for connections").WithStartupTimeout(time.Second*10),
 		),
 	)
+	defer func() {
+		_ = testcontainers.TerminateContainer(mongoContainer)
+	}()
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer func() {
-		_ = testcontainers.TerminateContainer(mongoC)
-	}()
 
-	mongoURI, err := mongoC.ConnectionString(ctx)
+	mongoURI, err := mongoContainer.ConnectionString(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,8 +58,8 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	mongoDB = client.Database("test")
-	defer func() { _ = mongoDB.Drop(ctx) }()
+	_mongoDB = client.Database("test")
+	defer func() { _ = _mongoDB.Drop(ctx) }()
 
 	os.Exit(m.Run())
 }

@@ -18,16 +18,16 @@ spec:
           imagePullPolicy: Never
           image: ghcr.io/natsoman/reader-worker:local
           env:
-              # How far in advance to start reading YouTube live streams, must be gte a minute and lte an hour
+              # How far in advance to start reading YouTube live streams. Must be between 1 minute and 1 hour (inclusive).
             - name: ADVANCE_START
               value: "15m"
-              # Maximum interval between retry attempts, must be gte a sec and lte a minute
-            - name: MAX_RETRY_INTERVAL
-              value: "5s"
+              # Interval between read retry attempts. Must be between 10 seconds and 1 minute (inclusive).
+            - name: RETRY_INTERVAL
+              value: "10s"
             - name: YOUTUBE_GRPC_TARGET
               value: "dns:///youtube.googleapis.com:443"
-            - name: REDIS_ADDR
-              value: "redis-cluster-0.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-1.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-2.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-3.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-4.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-5.redis-cluster-headless.redis.svc.cluster.local:6379"
+            - name: ETCD_ENDPOINTS
+              value: "etcd-0.etcd.etcd.svc.cluster.local:2379,etcd-1.etcd.etcd.svc.cluster.local:2379,etcd-2.etcd.etcd.svc.cluster.local:2379"
           envFrom:
             - configMapRef:
                 name: common

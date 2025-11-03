@@ -10,21 +10,22 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/redis/go-redis/extra/redisotel/v9"
-	goredis "github.com/redis/go-redis/v9"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/natsoman/youtube-chat-reader/apps/reader/internal/infra/etcd"
 
 	"github.com/natsoman/youtube-chat-reader/apps/reader/internal/app"
 	"github.com/natsoman/youtube-chat-reader/apps/reader/internal/infra"
 	"github.com/natsoman/youtube-chat-reader/apps/reader/internal/infra/google"
 	inframongo "github.com/natsoman/youtube-chat-reader/apps/reader/internal/infra/mongo"
 	mongootel "github.com/natsoman/youtube-chat-reader/apps/reader/internal/infra/mongo/otel"
-	"github.com/natsoman/youtube-chat-reader/apps/reader/internal/infra/redis"
 	"github.com/natsoman/youtube-chat-reader/apps/reader/internal/infra/youtube"
 	"github.com/natsoman/youtube-chat-reader/pkg/otel"
 )
@@ -110,25 +111,19 @@ func main() {
 		return
 	}
 
-	redisClusterClient := goredis.NewClusterClient(&goredis.ClusterOptions{
-		Addrs:      cnf.Redis.Addr,
-		ClientName: _serviceName,
-		MaxRetries: 3,
+	etcdClient, err := clientv3.New(clientv3.Config{
+		Endpoints:   cnf.Etcd.Endpoints,
+		DialTimeout: 5 * time.Second,
+		Logger:      zap.NewNop(),
 	})
-
-	if err = redisotel.InstrumentTracing(redisClusterClient); err != nil {
-		log.Error("Failed to instrument Redis with trace", "err", err)
-		return
-	}
-
-	if err = redisotel.InstrumentMetrics(redisClusterClient); err != nil {
-		log.Error("Failed to instrument Redis with metrics", "err", err)
-		return
-	}
-
-	locker, err := redis.NewLocker(redisClusterClient)
 	if err != nil {
-		log.Error("Failed to create Redis locker", "err", err)
+		log.Error("Failed to create Etcd client", "err", err)
+		return
+	}
+
+	locker, err := etcd.NewLocker(etcdClient)
+	if err != nil {
+		log.Error("Failed to create Etcd locker", "err", err)
 		return
 	}
 
@@ -202,7 +197,7 @@ func main() {
 		instTextMessageRepo,
 		instDonateRepo,
 		instAuthorRepo,
-		app.WithMaxRetryInterval(cnf.MaxRetryInterval),
+		app.WithRetryInterval(cnf.RetryInterval),
 		app.WithAdvanceStart(cnf.AdvanceStart),
 	)
 	if err != nil {

@@ -28,20 +28,19 @@ serverFiles:
           - targets:
             - otel-collector-opentelemetry-collector.observability.svc.cluster.local:9090
 
-      - job_name: 'mongo-0'
+      - job_name: 'mongo'
         static_configs:
           - targets:
               - prometheus-mongodb-exporter-0.mongo.svc.cluster.local:9216
-
-      - job_name: 'mongo-1'
-        static_configs:
-          - targets:
               - prometheus-mongodb-exporter-1.mongo.svc.cluster.local:9216
+              - prometheus-mongodb-exporter-2.mongo.svc.cluster.local:9216
 
-      - job_name: 'mongo-2'
+      - job_name: 'etcd'
         static_configs:
           - targets:
-              - prometheus-mongodb-exporter-2.mongo.svc.cluster.local:9216
+            - etcd-0.etcd.etcd.svc.cluster.local:8080
+            - etcd-1.etcd.etcd.svc.cluster.local:8080
+            - etcd-2.etcd.etcd.svc.cluster.local:8080
 
 alertmanager:
   enabled: false

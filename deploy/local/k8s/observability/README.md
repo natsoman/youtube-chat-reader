@@ -44,7 +44,7 @@ The OpenTelemetry Collector will receive telemetry data and forward it to the ap
   helm upgrade -i prometheus prometheus-community/prometheus -f prometheus-values.yaml -n observability
 ```
 
-Access Prometheus UI at: http://localhost:9090
+Access Prometheus UI at: http://prometheus-server.observability.svc.cluster.local/
 
 ## grafana
 

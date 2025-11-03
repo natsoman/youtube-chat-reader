@@ -7,16 +7,16 @@ import (
 
 type Option func(*LiveStreamReader) error
 
-// WithMaxRetryInterval specifies the maximum interval between live stream reading attempts.
-func WithMaxRetryInterval(d time.Duration) Option {
+// WithRetryInterval specifies the maximum interval between live stream reading attempts.
+func WithRetryInterval(d time.Duration) Option {
 	return func(s *LiveStreamReader) error {
-		if d >= time.Second*1 && d <= time.Minute {
-			s.maxRetryInterval = d
+		if d >= time.Second*10 && d <= time.Minute {
+			s.retryInterval = d
 
 			return nil
 		}
 
-		return errors.New("max retry interval must be gte a sec and lte a minute")
+		return errors.New("max retry interval must be gte 10sec and lte a minute")
 	}
 }
 

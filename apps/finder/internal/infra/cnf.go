@@ -15,12 +15,12 @@ type Conf struct {
 type MongoDB struct {
 	// nolint:lll
 	URI      string `default:"mongodb://mongodb-0.replica-set.mongo.svc.cluster.local:27017,mongodb-1.replica-set.mongo.svc.cluster.local:27017,mongodb-2.replica-set.mongo.svc.cluster.local:27017/admin?replicaSet=rs0"`
-	Database string `default:"youtube-chat-reader"`
+	Database string `default:"youtube"`
 }
 
 type Kafka struct {
 	// nolint:lll
-	Brokers []string `default:"youtube-chat-reader-dual-role-0.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092,youtube-chat-reader-dual-role-1.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092,youtube-chat-reader-dual-role-2.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092"`
+	Brokers []string `default:"youtube-dual-role-0.youtube-kafka-brokers.kafka.svc.cluster.local:9092,youtube-dual-role-1.youtube-kafka-brokers.kafka.svc.cluster.local:9092,youtube-dual-role-2.youtube-kafka-brokers.kafka.svc.cluster.local:9092"`
 	Topics  struct {
 		LiveStreamFoundV1 string `default:"live_stream.found.v1" split_words:"true"`
 	}

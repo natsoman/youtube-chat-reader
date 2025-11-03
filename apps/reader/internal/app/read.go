@@ -39,8 +39,6 @@ type ChatMessageStreamer interface {
 }
 
 type Locker interface {
-	// Lock acquires a lock for the given key. The lock will automatically expire after the context's deadline
-	// if one is set, or it will not expire if no deadline is provided.
 	Lock(ctx context.Context, key string) (bool, error)
 	Release(ctx context.Context, key string) error
 }
@@ -65,19 +63,19 @@ type AuthorRepository interface {
 }
 
 type LiveStreamReader struct {
-	log              *slog.Logger
-	clock            Clock
-	ticker           Ticker
-	locker           Locker
-	cmStreamer       ChatMessageStreamer
-	progressRepo     LiveStreamProgressRepository
-	banRepo          BanRepository
-	textMessageRepo  TextMessageRepository
-	donateRepo       DonateRepository
-	authorRepo       AuthorRepository
-	maxRetryInterval time.Duration
-	advanceStart     time.Duration
-	wg               sync.WaitGroup
+	log             *slog.Logger
+	clock           Clock
+	ticker          Ticker
+	locker          Locker
+	cmStreamer      ChatMessageStreamer
+	progressRepo    LiveStreamProgressRepository
+	banRepo         BanRepository
+	textMessageRepo TextMessageRepository
+	donateRepo      DonateRepository
+	authorRepo      AuthorRepository
+	retryInterval   time.Duration
+	advanceStart    time.Duration
+	wg              sync.WaitGroup
 }
 
 func NewLiveStreamReader(
@@ -128,28 +126,28 @@ func NewLiveStreamReader(
 		return nil, errors.New("author repository is nil")
 	}
 
-	cr := &LiveStreamReader{
-		log:              slog.Default().With("cmp", "chatReader"),
-		clock:            clock,
-		ticker:           ticker,
-		locker:           locker,
-		cmStreamer:       cmStreamer,
-		banRepo:          banRepo,
-		textMessageRepo:  textMessageRepo,
-		donateRepo:       donateRepo,
-		authorRepo:       authorRepo,
-		progressRepo:     progressRepo,
-		maxRetryInterval: time.Second * 5,
-		advanceStart:     time.Minute,
+	lsr := &LiveStreamReader{
+		log:             slog.Default().With("cmp", "chat_reader"),
+		clock:           clock,
+		ticker:          ticker,
+		locker:          locker,
+		cmStreamer:      cmStreamer,
+		banRepo:         banRepo,
+		textMessageRepo: textMessageRepo,
+		donateRepo:      donateRepo,
+		authorRepo:      authorRepo,
+		progressRepo:    progressRepo,
+		retryInterval:   time.Second * 10,
+		advanceStart:    time.Minute,
 	}
 
 	for _, opt := range opts {
-		if err := opt(cr); err != nil {
+		if err := opt(lsr); err != nil {
 			return nil, err
 		}
 	}
 
-	return cr, nil
+	return lsr, nil
 }
 
 // Read continuously reads domain.ChatMessages of started or upcoming domain.LiveStreamProgress until they finish.
@@ -157,37 +155,45 @@ func NewLiveStreamReader(
 func (lsr *LiveStreamReader) Read(ctx context.Context) {
 	defer lsr.log.InfoContext(ctx, "Reading stopped")
 
-	t, stop := lsr.ticker.Start(lsr.maxRetryInterval)
+	readStartedLiveStreams := func() {
+		liveStreamsProgress, err := lsr.progressRepo.Started(ctx, lsr.advanceStart)
+		if err != nil {
+			lsr.log.ErrorContext(ctx, "Failed to fetch started live streams progress", "err", err)
+			return
+		}
+
+		for _, lsp := range liveStreamsProgress {
+			lsr.wg.Add(1)
+
+			l := lsr.log.With("ls_id", lsp.ID())
+
+			go func() {
+				defer lsr.wg.Done()
+
+				if !lsr.tryLock(ctx, l, lsp.ID()) {
+					return
+				}
+
+				defer lsr.release(ctx, l, lsp.ID())
+
+				if rErr := lsr.readLiveStream(ctx, l, &lsp); rErr != nil && !errors.Is(rErr, context.Canceled) {
+					l.ErrorContext(ctx, "Failed to read live stream", "err", rErr)
+				}
+			}()
+		}
+	}
+
+	t, stop := lsr.ticker.Start(lsr.retryInterval)
 	defer stop()
 
+	// Run once immediately
+	readStartedLiveStreams()
+
+	// Then keep retrying
 	for {
 		select {
 		case <-t:
-			liveStreamsProgress, err := lsr.progressRepo.Started(ctx, lsr.advanceStart)
-			if err != nil {
-				lsr.log.ErrorContext(ctx, "Failed to fetch started live streams progress", "err", err)
-				break
-			}
-
-			for _, lsp := range liveStreamsProgress {
-				lsr.wg.Add(1)
-
-				l := lsr.log.With("live_stream_id", lsp.ID())
-
-				go func() {
-					defer lsr.wg.Done()
-
-					if !lsr.tryLock(ctx, l, lsp.ID()) {
-						return
-					}
-
-					defer lsr.release(ctx, l, lsp.ID())
-
-					if rErr := lsr.readLiveStream(ctx, l, &lsp); rErr != nil && !errors.Is(rErr, context.Canceled) {
-						l.ErrorContext(ctx, "Failed to read live stream", "err", rErr)
-					}
-				}()
-			}
+			readStartedLiveStreams()
 		case <-ctx.Done():
 			lsr.log.InfoContext(ctx, "Stopping read...")
 			lsr.wg.Wait()
@@ -198,60 +204,73 @@ func (lsr *LiveStreamReader) Read(ctx context.Context) {
 }
 
 func (lsr *LiveStreamReader) readLiveStream(ctx context.Context, l *slog.Logger, lsp *domain.LiveStreamProgress) error {
-	cancelCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	streamCtx, streamCancel := context.WithCancel(ctx)
+	defer streamCancel()
 
-	cmChan, errChan := lsr.cmStreamer.StreamChatMessages(cancelCtx, lsp)
+	l.InfoContext(ctx, "Start live stream reading")
+
+	cmChan, errChan := lsr.cmStreamer.StreamChatMessages(streamCtx, lsp)
 
 	for {
-		select {
-		case cm, ok := <-cmChan:
-			if !ok {
-				l.DebugContext(ctx, "Streaming channel closed")
-				return nil
+		exit, err := func() (bool, error) {
+			select {
+			case cm, ok := <-cmChan:
+				if !ok {
+					l.DebugContext(ctx, "Streaming channel closed")
+					return true, nil
+				}
+
+				if cm.NextPageToken() != "" {
+					lsp.SetNextPageToken(cm.NextPageToken())
+				} else {
+					lsp.Finish(lsr.clock.Now(), "empty next page token")
+				}
+
+				if err := lsr.store(ctx, lsp, &cm); err != nil {
+					return false, err
+				}
+
+				l.InfoContext(ctx, "Chat stored",
+					"npt", cm.NextPageToken(),
+					"txt", len(cm.TextMessages()),
+					"dnt", len(cm.Donates()),
+					"ban", len(cm.Bans()),
+					"auth", len(cm.Authors()),
+				)
+
+				if lsp.IsFinished() {
+					return true, nil
+				}
+			case err, ok := <-errChan:
+				if !ok {
+					l.DebugContext(ctx, "Error channel closed")
+					return true, nil
+				}
+
+				l.ErrorContext(ctx, "Error channel", "err", err)
+
+				if !oneOf(err, domain.ErrUnavailableLiveStream, domain.ErrChatOffline, domain.ErrChatNotFound) {
+					return false, err
+				}
+
+				lsp.Finish(lsr.clock.Now(), err.Error())
+
+				if err = lsr.progressRepo.Upsert(ctx, lsp); err != nil {
+					return false, fmt.Errorf("upsert live stream progress: %v", err)
+				}
+
+				return true, nil
+			case <-ctx.Done():
+				return false, ctx.Err()
 			}
 
-			if cm.NextPageToken() != "" {
-				lsp.SetNextPageToken(cm.NextPageToken())
-			} else {
-				lsp.Finish(lsr.clock.Now(), "empty next page token")
-			}
+			return false, nil
+		}()
+		if err != nil {
+			return err
+		}
 
-			if err := lsr.store(ctx, lsp, &cm); err != nil {
-				return err
-			}
-
-			l.InfoContext(ctx, "Chat stored",
-				"next_page_token", cm.NextPageToken(),
-				"texts", len(cm.TextMessages()),
-				"donates", len(cm.Donates()),
-				"bans", len(cm.Bans()),
-				"authors", len(cm.Authors()),
-			)
-
-			if lsp.IsFinished() {
-				return nil
-			}
-		case err, ok := <-errChan:
-			if !ok {
-				l.DebugContext(ctx, "Streaming error channel closed")
-				return nil
-			}
-
-			l.ErrorContext(ctx, "Streaming failed", "err", err)
-
-			if !oneOf(err, domain.ErrUnavailableLiveStream, domain.ErrChatOffline, domain.ErrChatNotFound) {
-				return err
-			}
-
-			lsp.Finish(lsr.clock.Now(), err.Error())
-
-			if err = lsr.progressRepo.Upsert(ctx, lsp); err != nil {
-				return fmt.Errorf("upsert live stream progress: %v", err)
-			}
-
-			return nil
-		case <-ctx.Done():
+		if exit {
 			return nil
 		}
 	}
@@ -261,37 +280,45 @@ func (lsr *LiveStreamReader) store(ctx context.Context, lsp *domain.LiveStreamPr
 	g, _ := errgroup.WithContext(ctx)
 	g.SetLimit(4)
 
-	g.Go(func() error {
-		if err := lsr.authorRepo.Upsert(ctx, cm.Authors()); err != nil {
-			return fmt.Errorf("insert to authors repo: %v", err)
-		}
+	if len(cm.Authors()) > 0 {
+		g.Go(func() error {
+			if err := lsr.authorRepo.Upsert(ctx, cm.Authors()); err != nil {
+				return fmt.Errorf("insert to authors repo: %v", err)
+			}
 
-		return nil
-	})
+			return nil
+		})
+	}
 
-	g.Go(func() error {
-		if err := lsr.banRepo.Insert(ctx, cm.Bans()); err != nil {
-			return fmt.Errorf("insert to ban repo: %v", err)
-		}
+	if len(cm.Bans()) > 0 {
+		g.Go(func() error {
+			if err := lsr.banRepo.Insert(ctx, cm.Bans()); err != nil {
+				return fmt.Errorf("insert to ban repo: %v", err)
+			}
 
-		return nil
-	})
+			return nil
+		})
+	}
 
-	g.Go(func() error {
-		if err := lsr.textMessageRepo.Insert(ctx, cm.TextMessages()); err != nil {
-			return fmt.Errorf("insert to text messages repo: %v", err)
-		}
+	if len(cm.TextMessages()) > 0 {
+		g.Go(func() error {
+			if err := lsr.textMessageRepo.Insert(ctx, cm.TextMessages()); err != nil {
+				return fmt.Errorf("insert to text messages repo: %v", err)
+			}
 
-		return nil
-	})
+			return nil
+		})
+	}
 
-	g.Go(func() error {
-		if err := lsr.donateRepo.Insert(ctx, cm.Donates()); err != nil {
-			return fmt.Errorf("insert to donates repo: %v", err)
-		}
+	if len(cm.Donates()) > 0 {
+		g.Go(func() error {
+			if err := lsr.donateRepo.Insert(ctx, cm.Donates()); err != nil {
+				return fmt.Errorf("insert to donates repo: %v", err)
+			}
 
-		return nil
-	})
+			return nil
+		})
+	}
 
 	if err := g.Wait(); err != nil {
 		return err
@@ -306,8 +333,12 @@ func (lsr *LiveStreamReader) store(ctx context.Context, lsp *domain.LiveStreamPr
 	return nil
 }
 
+// tryLock attempts to acquire lock and returns true if succeeds, in any other case it returns false.
 func (lsr *LiveStreamReader) tryLock(ctx context.Context, l *slog.Logger, liveStreamID string) bool {
-	ok, err := lsr.locker.Lock(ctx, liveStreamID)
+	timeCtx, cancel := context.WithTimeout(ctx, time.Second*2)
+	defer cancel()
+
+	ok, err := lsr.locker.Lock(timeCtx, liveStreamID)
 	if err != nil {
 		l.ErrorContext(ctx, "Failed to acquire lock", "err", err)
 
@@ -326,7 +357,7 @@ func (lsr *LiveStreamReader) tryLock(ctx context.Context, l *slog.Logger, liveSt
 }
 
 func (lsr *LiveStreamReader) release(ctx context.Context, log *slog.Logger, liveStreamID string) {
-	timeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second*2)
+	timeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Millisecond*100)
 	defer cancel()
 
 	err := lsr.locker.Release(timeCtx, liveStreamID)

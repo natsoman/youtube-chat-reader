@@ -60,15 +60,17 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 	cmChan := make(chan domain.ChatMessages)
 	errChan := make(chan error)
 
+	nextPageToken := lsp.NextPageToken()
+
 	go func() {
 		defer close(cmChan)
 
-		l := c.log.With("live_stream_id", lsp.ID())
+		l := c.log.With("ls_id", lsp.ID())
 
 		l.DebugContext(ctx, "YouTube streaming is starting")
 		defer l.DebugContext(ctx, "YouTube streaming stopped")
 
-		streamThrottle, streamThrottleStop := c.steamListTicker.Start(time.Millisecond * 200)
+		streamThrottle, streamThrottleStop := c.steamListTicker.Start(time.Second * 2)
 		defer streamThrottleStop()
 
 		for {
@@ -76,9 +78,8 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 			case <-streamThrottle: // Call StreamList
 				maxResults := uint32(2000)
 				liveChatId := lsp.ChatID()
-				nextPageToken := lsp.NextPageToken()
 
-				l.DebugContext(ctx, "StreamList call", "nextPageToken", nextPageToken)
+				l.DebugContext(ctx, "StreamList", "nextPageToken", nextPageToken)
 
 				streamList, sErr := c.grpcClient.StreamList(
 					metadata.NewOutgoingContext(ctx, metadata.Pairs("x-goog-api-key", c.apiKey())),
@@ -96,14 +97,14 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 				}
 
 				func() {
-					recvThrottle, recvThrottleStop := c.recvTicker.Start(time.Millisecond * 200)
+					recvThrottle, recvThrottleStop := c.recvTicker.Start(time.Second * 2)
 					defer recvThrottleStop()
 
 					for {
 						select {
 						case <-recvThrottle: // Receive messages
 							cm, err := func() (*domain.ChatMessages, error) {
-								l.DebugContext(ctx, "YouTube streamList receiving")
+								l.DebugContext(ctx, "StreamList.Recv")
 
 								resp, err := streamList.Recv()
 								if err != nil {
@@ -133,6 +134,10 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 								errChan <- err
 
 								return
+							}
+
+							if cm.NextPageToken() != "" {
+								nextPageToken = cm.NextPageToken()
 							}
 
 							cmChan <- *cm

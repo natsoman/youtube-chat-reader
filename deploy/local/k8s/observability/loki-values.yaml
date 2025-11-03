@@ -20,6 +20,14 @@ loki:
     volume_enabled: true
   ruler:
     enable_api: true
+  storage:
+    type: 'filesystem'
+    bucketNames:
+      chunks: loki-chunks
+      ruler: loki-ruler
+      admin: loki-admin
+    filesystem:
+      directory: /data/loki
 
 minio:
   enabled: true

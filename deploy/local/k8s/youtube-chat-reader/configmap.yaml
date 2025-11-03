@@ -4,7 +4,7 @@ metadata:
   name: common
   namespace: youtube
 data:
-  LOG_LEVEL: debug
+  LOG_LEVEL: "info"
   MONGODB_DATABASE: "youtube"
   OTEL_SAMPLE_RATE: "1.0"
   OTEL_COLLECTOR_GRPC_ADDR: "otel-collector-opentelemetry-collector.observability.svc.cluster.local:4317"

@@ -19,9 +19,9 @@ func TestTransactor_Atomic(t *testing.T) {
 	t.Parallel()
 
 	t.Run("both operations are applied successfully", func(t *testing.T) {
-		collection := mongoDB.Collection("transactorAtomic1")
+		collection := _mongoDB.Collection("transactorAtomic1")
 
-		txn, err := pkgmongo.NewTransactor(mongoDB.Client())
+		txn, err := pkgmongo.NewTransactor(_mongoDB.Client())
 		require.NotNil(t, txn)
 		require.NoError(t, err)
 
@@ -48,10 +48,10 @@ func TestTransactor_Atomic(t *testing.T) {
 	})
 
 	t.Run("none operation is applied when at least one fails", func(t *testing.T) {
-		collection := mongoDB.Collection("transactorAtomic2")
+		collection := _mongoDB.Collection("transactorAtomic2")
 		require.NotNil(t, collection)
 
-		txn, err := pkgmongo.NewTransactor(mongoDB.Client())
+		txn, err := pkgmongo.NewTransactor(_mongoDB.Client())
 		require.NotNil(t, txn)
 		require.NoError(t, err)
 

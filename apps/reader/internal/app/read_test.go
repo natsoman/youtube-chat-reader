@@ -256,10 +256,10 @@ func TestLiveStreamReader_Read(t *testing.T) {
 	const timeout = time.Millisecond * 10
 
 	t.Run("successfully store chat messages and updates next page token", func(t *testing.T) {
+		reader, deps := setupTest(t, app.WithAdvanceStart(time.Minute))
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t, app.WithMaxRetryInterval(time.Second), app.WithAdvanceStart(time.Minute))
 
 		// Given
 		lsp, err := domain.NewLiveStreamProgress("id", "chatId", time.Now().UTC())
@@ -274,13 +274,13 @@ func TestLiveStreamReader_Read(t *testing.T) {
 
 		gomock.InOrder(
 			deps.ticker.EXPECT().
-				Start(time.Second).
+				Start(time.Second*10).
 				Return(tickChan, func() {}),
 			deps.progressRepo.EXPECT().
 				Started(gomock.Any(), time.Minute).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(ctx, "id").
+				Lock(gomock.Any(), "id").
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), lsp).
@@ -296,13 +296,15 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				After(deps.authorRepo.EXPECT().
 					Upsert(gomock.Any(), cm.Authors())),
 			deps.locker.EXPECT().
-				Release(gomock.Any(), "id"),
+				Release(gomock.Any(), "id").
+				DoAndReturn(func(_ context.Context, _ string) error {
+					cancel()
+					return nil
+				}),
 		)
 
 		// When
 		go func() {
-			tickChan <- time.Now()
-
 			cmChan <- cm
 		}()
 
@@ -310,9 +312,9 @@ func TestLiveStreamReader_Read(t *testing.T) {
 	})
 
 	t.Run("successfully store chat messages and finishes progress on empty next page token", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(t.Context())
+		reader, deps := setupTest(t, app.WithRetryInterval(time.Second*10), app.WithAdvanceStart(time.Minute))
 
-		reader, deps := setupTest(t, app.WithMaxRetryInterval(time.Second), app.WithAdvanceStart(time.Minute))
+		ctx, cancel := context.WithCancel(t.Context())
 
 		// Given
 		now := time.Now()
@@ -328,7 +330,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 
 		gomock.InOrder(
 			deps.ticker.EXPECT().
-				Start(time.Second).
+				Start(time.Second*10).
 				Return(tickChan, func() {}),
 			deps.progressRepo.EXPECT().
 				Started(gomock.Any(), time.Minute).
@@ -362,19 +364,18 @@ func TestLiveStreamReader_Read(t *testing.T) {
 
 		// When
 		go func() {
-			tickChan <- time.Now()
-
 			cmChan <- cm
 		}()
 
 		reader.Read(ctx)
 	})
 
+	//nolint:dupl
 	t.Run("handles error when upserting authors fails", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		tickChan := make(chan time.Time)
@@ -399,28 +400,24 @@ func TestLiveStreamReader_Read(t *testing.T) {
 		deps.authorRepo.EXPECT().
 			Upsert(gomock.Any(), gomock.Any()).
 			Return(errors.New("error"))
-		deps.donateRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
-		deps.textRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
-		deps.banRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
 
 		// When
 		go func() {
-			tickChan <- time.Now()
+			cm := *domain.NewChatMessages("nextPageToken")
+			cm.AddAuthor(&domain.Author{})
 
-			cmChan <- *domain.NewChatMessages("nextPageToken")
+			cmChan <- cm
 		}()
 
 		reader.Read(ctx)
 	})
 
+	//nolint:dupl
 	t.Run("handles error when inserting donates fails", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		tickChan := make(chan time.Time)
@@ -442,31 +439,27 @@ func TestLiveStreamReader_Read(t *testing.T) {
 			deps.locker.EXPECT().
 				Release(gomock.Any(), gomock.Any()),
 		)
-		deps.authorRepo.EXPECT().
-			Upsert(gomock.Any(), gomock.Any())
 		deps.donateRepo.EXPECT().
 			Insert(gomock.Any(), gomock.Any()).
 			Return(errors.New("error"))
-		deps.textRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
-		deps.banRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
 
 		// When
 		go func() {
-			tickChan <- time.Now()
+			cm := *domain.NewChatMessages("nextPageToken")
+			cm.AddDonate(&domain.Donate{})
 
-			cmChan <- *domain.NewChatMessages("nextPageToken")
+			cmChan <- cm
 		}()
 
 		reader.Read(ctx)
 	})
 
+	//nolint:dupl
 	t.Run("handles error when inserting text messages fails", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		tickChan := make(chan time.Time)
@@ -488,31 +481,27 @@ func TestLiveStreamReader_Read(t *testing.T) {
 			deps.locker.EXPECT().
 				Release(gomock.Any(), gomock.Any()),
 		)
-		deps.authorRepo.EXPECT().
-			Upsert(gomock.Any(), gomock.Any())
-		deps.donateRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
 		deps.textRepo.EXPECT().
 			Insert(gomock.Any(), gomock.Any()).
 			Return(errors.New("error"))
-		deps.banRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
 
 		// When
 		go func() {
-			tickChan <- time.Now()
+			cm := *domain.NewChatMessages("nextPageToken")
+			cm.AddTextMessage(&domain.TextMessage{})
 
-			cmChan <- *domain.NewChatMessages("nextPageToken")
+			cmChan <- cm
 		}()
 
 		reader.Read(ctx)
 	})
 
+	//nolint:dupl
 	t.Run("handles error when inserting bans fails", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		tickChan := make(chan time.Time)
@@ -534,31 +523,26 @@ func TestLiveStreamReader_Read(t *testing.T) {
 			deps.locker.EXPECT().
 				Release(gomock.Any(), gomock.Any()),
 		)
-		deps.authorRepo.EXPECT().
-			Upsert(gomock.Any(), gomock.Any())
-		deps.donateRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
-		deps.textRepo.EXPECT().
-			Insert(gomock.Any(), gomock.Any())
 		deps.banRepo.EXPECT().
 			Insert(gomock.Any(), gomock.Any()).
 			Return(errors.New("error"))
 
 		// When
 		go func() {
-			tickChan <- time.Now()
+			cm := *domain.NewChatMessages("nextPageToken")
+			cm.AddBan(&domain.Ban{})
 
-			cmChan <- *domain.NewChatMessages("nextPageToken")
+			cmChan <- cm
 		}()
 
 		reader.Read(ctx)
 	})
 
 	t.Run("handles error on live stream progress save", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		tickChan := make(chan time.Time)
@@ -579,10 +563,6 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Return(cmChan, nil),
 			deps.progressRepo.EXPECT().
 				Upsert(gomock.Any(), gomock.Any()).
-				After(deps.donateRepo.EXPECT().Insert(gomock.Any(), gomock.Any())).
-				After(deps.textRepo.EXPECT().Insert(gomock.Any(), gomock.Any())).
-				After(deps.banRepo.EXPECT().Insert(gomock.Any(), gomock.Any())).
-				After(deps.authorRepo.EXPECT().Upsert(gomock.Any(), gomock.Any())).
 				Return(errors.New("error")),
 			deps.locker.EXPECT().
 				Release(gomock.Any(), gomock.Any()),
@@ -590,8 +570,6 @@ func TestLiveStreamReader_Read(t *testing.T) {
 
 		// When
 		go func() {
-			tickChan <- time.Now()
-
 			cmChan <- *domain.NewChatMessages("nextPageToken")
 		}()
 
@@ -599,10 +577,10 @@ func TestLiveStreamReader_Read(t *testing.T) {
 	})
 
 	t.Run("handles chat message streaming error", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		lsp, err := domain.NewLiveStreamProgress("id", "chatId", time.Now().UTC())
@@ -630,8 +608,6 @@ func TestLiveStreamReader_Read(t *testing.T) {
 
 		// When
 		go func() {
-			tickChan <- time.Now()
-
 			errChan <- fmt.Errorf("error")
 		}()
 
@@ -639,10 +615,10 @@ func TestLiveStreamReader_Read(t *testing.T) {
 	})
 
 	t.Run("successfully finishes when live stream becomes unavailable", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		lsp, err := domain.NewLiveStreamProgress("id", "chatId", time.Now().UTC())
@@ -671,15 +647,13 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Now().
 				Return(now),
 			deps.progressRepo.EXPECT().
-				Upsert(gomock.Any(), gomock.Any()),
+				Upsert(gomock.Any(), lspFinished),
 			deps.locker.EXPECT().
 				Release(gomock.Any(), gomock.Any()),
 		)
 
 		// When
 		go func() {
-			tickChan <- time.Now()
-
 			errChan <- domain.ErrUnavailableLiveStream
 		}()
 
@@ -687,10 +661,10 @@ func TestLiveStreamReader_Read(t *testing.T) {
 	})
 
 	t.Run("unsuccessfully finishes when live stream becomes unavailable", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		lsp, err := domain.NewLiveStreamProgress("id", "chatId", time.Now().UTC())
@@ -727,8 +701,6 @@ func TestLiveStreamReader_Read(t *testing.T) {
 
 		// When
 		go func() {
-			tickChan <- time.Now()
-
 			errChan <- domain.ErrUnavailableLiveStream
 		}()
 
@@ -736,10 +708,10 @@ func TestLiveStreamReader_Read(t *testing.T) {
 	})
 
 	t.Run("handles error when fetching started progress fails", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		tickChan := make(chan time.Time)
@@ -753,10 +725,6 @@ func TestLiveStreamReader_Read(t *testing.T) {
 		)
 
 		// When
-		go func() {
-			tickChan <- time.Now()
-		}()
-
 		reader.Read(ctx)
 	})
 
@@ -778,18 +746,14 @@ func TestLiveStreamReader_Read(t *testing.T) {
 		)
 
 		// When
-		go func() {
-			tickChan <- time.Now()
-		}()
-
 		reader.Read(ctx)
 	})
 
 	t.Run("error lock cannot be acquired", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		lsp, err := domain.NewLiveStreamProgress("id", "chatId", time.Now().UTC())
@@ -809,18 +773,14 @@ func TestLiveStreamReader_Read(t *testing.T) {
 		)
 
 		// When
-		go func() {
-			tickChan <- time.Now()
-		}()
-
 		reader.Read(ctx)
 	})
 
 	t.Run("lock is already acquired acquired", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		lsp, err := domain.NewLiveStreamProgress("id", "chatId", time.Now().UTC())
@@ -840,10 +800,6 @@ func TestLiveStreamReader_Read(t *testing.T) {
 		)
 
 		// When
-		go func() {
-			tickChan <- time.Now()
-		}()
-
 		reader.Read(ctx)
 	})
 
@@ -876,8 +832,6 @@ func TestLiveStreamReader_Read(t *testing.T) {
 
 		// When
 		go func() {
-			tickChan <- time.Now()
-
 			close(errChan)
 		}()
 
@@ -885,10 +839,10 @@ func TestLiveStreamReader_Read(t *testing.T) {
 	})
 
 	t.Run("streaming chat message channel is closed successfully", func(t *testing.T) {
+		reader, deps := setupTest(t)
+
 		ctx, cancel := context.WithTimeout(t.Context(), timeout)
 		defer cancel()
-
-		reader, deps := setupTest(t)
 
 		// Given
 		tickChan := make(chan time.Time)
@@ -913,8 +867,6 @@ func TestLiveStreamReader_Read(t *testing.T) {
 
 		// When
 		go func() {
-			tickChan <- time.Now()
-
 			close(cmChan)
 		}()
 

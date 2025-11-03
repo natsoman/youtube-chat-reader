@@ -15,7 +15,7 @@
 ```shell
     for i in 0 1 2; do
       helm upgrade -i prometheus-mongodb-exporter-$i \
-        oci://ghcr.io/prometheus-community/charts/prometheus-mongodb-exporter \
+        prometheus-community/prometheus-mongodb-exporter \
         -f prometheus-mongodb-exporter/values-$i.yaml -n mongo
     done
 ```

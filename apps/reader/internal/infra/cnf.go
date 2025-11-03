@@ -10,11 +10,11 @@ type WorkerConf struct {
 	LogLevel string `default:"debug" split_words:"true"`
 	OTEL     OTEL
 	MongoDB  MongoDB
-	Redis    Redis
+	Etcd     Etcd
 	YouTube  YouTube
 
-	MaxRetryInterval time.Duration `default:"10s" split_words:"true"`
-	AdvanceStart     time.Duration `default:"30m" split_words:"true"`
+	RetryInterval time.Duration `default:"10s" split_words:"true"`
+	AdvanceStart  time.Duration `default:"30m" split_words:"true"`
 }
 
 type ConsumerConf struct {
@@ -27,20 +27,20 @@ type ConsumerConf struct {
 type MongoDB struct {
 	// nolint:lll
 	URI      string `default:"mongodb://mongodb-0.replica-set.mongo.svc.cluster.local:27017,mongodb-1.replica-set.mongo.svc.cluster.local:27017,mongodb-2.replica-set.mongo.svc.cluster.local:27017/admin?replicaSet=rs0"`
-	Database string `default:"youtube-chat-reader"`
+	Database string `default:"youtube"`
 }
 
 type Kafka struct {
 	// nolint:lll
-	Brokers []string `default:"youtube-chat-reader-dual-role-0.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092,youtube-chat-reader-dual-role-1.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092,youtube-chat-reader-dual-role-2.youtube-chat-reader-kafka-brokers.kafka.svc.cluster.local:9092"`
+	Brokers []string `default:"youtube-dual-role-0.youtube-kafka-brokers.kafka.svc.cluster.local:9092,youtube-dual-role-1.youtube-kafka-brokers.kafka.svc.cluster.local:9092,youtube-dual-role-2.youtube-kafka-brokers.kafka.svc.cluster.local:9092"`
 	Topics  struct {
 		LiveStreamFoundV1 string `default:"live_stream.found.v1" split_words:"true"`
 	}
 }
 
-type Redis struct {
+type Etcd struct {
 	// nolint:lll
-	Addr []string `default:"redis-cluster-0.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-1.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-2.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-3.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-4.redis-cluster-headless.redis.svc.cluster.local:6379,redis-cluster-5.redis-cluster-headless.redis.svc.cluster.local:6379"`
+	Endpoints []string `default:"etcd-0.etcd.etcd.svc.cluster.local:2379,etcd-1.etcd.etcd.svc.cluster.local:2379,etcd-2.etcd.etcd.svc.cluster.local:2379"`
 }
 
 type OTEL struct {
