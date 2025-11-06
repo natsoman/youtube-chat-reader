@@ -1,11 +1,9 @@
 package youtube_test
 
 import (
+	_ "embed"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -16,6 +14,23 @@ import (
 
 	"github.com/natsoman/youtube-chat-reader/apps/finder/internal/domain"
 	"github.com/natsoman/youtube-chat-reader/apps/finder/internal/infra/youtube"
+)
+
+var (
+	//go:embed testdata/videos/success.json
+	videosRespSuccess []byte
+
+	//go:embed testdata/videos/invalid.json
+	videoRespInvalid []byte
+
+	//go:embed testdata/videos/skipped.json
+	videoRespSkipped []byte
+
+	//go:embed testdata/videos/invalid_start_time.json
+	videoRespInvalidStartTime []byte
+
+	//go:embed testdata/videos/invalid_published_time.json
+	videoRespInvalidPublishedTime []byte
 )
 
 func TestClient_SearchUpcomingLiveStream(t *testing.T) {
@@ -104,7 +119,7 @@ func TestClient_ListLiveStreams(t *testing.T) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(videoListResponse(t, "video_list/success")))
+			_, _ = w.Write(videosRespSuccess)
 		}
 
 		c := setupTest(t, http.HandlerFunc(handler))
@@ -189,7 +204,7 @@ func TestClient_ListLiveStreams(t *testing.T) {
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(videoListResponse(t, "video_list/skipped")))
+			_, _ = w.Write(videoRespSkipped)
 		}
 
 		c := setupTest(t, http.HandlerFunc(handler))
@@ -209,7 +224,7 @@ func TestClient_ListLiveStreams(t *testing.T) {
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(videoListResponse(t, "video_list/invalid_start_time")))
+			_, _ = w.Write(videoRespInvalidStartTime)
 		}
 
 		c := setupTest(t, http.HandlerFunc(handler))
@@ -229,7 +244,7 @@ func TestClient_ListLiveStreams(t *testing.T) {
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(videoListResponse(t, "video_list/invalid_published_time")))
+			_, _ = w.Write(videoRespInvalidPublishedTime)
 		}
 
 		c := setupTest(t, http.HandlerFunc(handler))
@@ -249,7 +264,7 @@ func TestClient_ListLiveStreams(t *testing.T) {
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(videoListResponse(t, "video_list/invalid")))
+			_, _ = w.Write(videoRespInvalid)
 		}
 
 		c := setupTest(t, http.HandlerFunc(handler))
@@ -284,21 +299,4 @@ func setupTest(t *testing.T, handler http.Handler) *youtube.Client {
 	require.NoError(t, err)
 
 	return c
-}
-
-func videoListResponse(t *testing.T, path string) []byte {
-	t.Helper()
-
-	if path == "" {
-		t.FailNow()
-	}
-
-	// Get the current test file's directory
-	_, file, _, _ := runtime.Caller(0)
-	dir := filepath.Dir(file)
-
-	data, err := os.ReadFile(filepath.Clean(filepath.Join(dir, "testdata", path+".json")))
-	require.NoError(t, err, "Failed to read test data file")
-
-	return data
 }
