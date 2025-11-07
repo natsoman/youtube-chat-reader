@@ -211,21 +211,6 @@ func (m *MockLocker) EXPECT() *MockLockerMockRecorder {
 	return m.recorder
 }
 
-// Lock mocks base method.
-func (m *MockLocker) Lock(ctx context.Context, key string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Lock", ctx, key)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Lock indicates an expected call of Lock.
-func (mr *MockLockerMockRecorder) Lock(ctx, key any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lock", reflect.TypeOf((*MockLocker)(nil).Lock), ctx, key)
-}
-
 // Release mocks base method.
 func (m *MockLocker) Release(ctx context.Context, key string) error {
 	m.ctrl.T.Helper()
@@ -238,6 +223,21 @@ func (m *MockLocker) Release(ctx context.Context, key string) error {
 func (mr *MockLockerMockRecorder) Release(ctx, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Release", reflect.TypeOf((*MockLocker)(nil).Release), ctx, key)
+}
+
+// TryLock mocks base method.
+func (m *MockLocker) TryLock(ctx context.Context, key string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TryLock", ctx, key)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TryLock indicates an expected call of TryLock.
+func (mr *MockLockerMockRecorder) TryLock(ctx, key any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TryLock", reflect.TypeOf((*MockLocker)(nil).TryLock), ctx, key)
 }
 
 // MockBanRepository is a mock of BanRepository interface.

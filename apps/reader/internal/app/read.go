@@ -39,7 +39,9 @@ type ChatMessageStreamer interface {
 }
 
 type Locker interface {
-	Lock(ctx context.Context, key string) (bool, error)
+	// TryLock acquires a lock for the given key.
+	// If the lock is already acquired it returns false.
+	TryLock(ctx context.Context, key string) (bool, error)
 	Release(ctx context.Context, key string) error
 }
 
@@ -335,10 +337,7 @@ func (lsr *LiveStreamReader) store(ctx context.Context, lsp *domain.LiveStreamPr
 
 // tryLock attempts to acquire lock and returns true if succeeds, in any other case it returns false.
 func (lsr *LiveStreamReader) tryLock(ctx context.Context, l *slog.Logger, liveStreamID string) bool {
-	timeCtx, cancel := context.WithTimeout(ctx, time.Second*2)
-	defer cancel()
-
-	ok, err := lsr.locker.Lock(timeCtx, liveStreamID)
+	ok, err := lsr.locker.TryLock(ctx, liveStreamID)
 	if err != nil {
 		l.ErrorContext(ctx, "Failed to acquire lock", "err", err)
 
@@ -346,7 +345,7 @@ func (lsr *LiveStreamReader) tryLock(ctx context.Context, l *slog.Logger, liveSt
 	}
 
 	if !ok {
-		l.DebugContext(ctx, "Locked")
+		l.DebugContext(ctx, "Already Locked")
 
 		return false
 	}

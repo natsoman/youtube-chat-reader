@@ -280,7 +280,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), time.Minute).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), "id").
+				TryLock(gomock.Any(), "id").
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), lsp).
@@ -336,7 +336,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), time.Minute).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), "id").
+				TryLock(gomock.Any(), "id").
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), lsp).
@@ -389,7 +389,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{{}}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -431,7 +431,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{{}}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -473,7 +473,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{{}}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -515,7 +515,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{{}}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -556,7 +556,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{{}}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -597,7 +597,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -638,7 +638,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -684,7 +684,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -768,7 +768,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(false, errors.New("lock failed")),
 		)
 
@@ -795,7 +795,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{*lsp}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(false, nil),
 		)
 
@@ -821,7 +821,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{{}}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).
@@ -856,7 +856,7 @@ func TestLiveStreamReader_Read(t *testing.T) {
 				Started(gomock.Any(), gomock.Any()).
 				Return([]domain.LiveStreamProgress{{}}, nil),
 			deps.locker.EXPECT().
-				Lock(gomock.Any(), gomock.Any()).
+				TryLock(gomock.Any(), gomock.Any()).
 				Return(true, nil),
 			deps.cmStreamer.EXPECT().
 				StreamChatMessages(gomock.Any(), gomock.Any()).

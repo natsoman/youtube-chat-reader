@@ -5,80 +5,80 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
-	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
 // Locker implements distributed locking using etcd
 type Locker struct {
-	client  *clientv3.Client
 	session *concurrency.Session
 	mu      sync.Mutex
-	locks   map[string]*concurrency.Mutex
+	mutexes map[string]*concurrency.Mutex
 }
 
-// NewLocker creates a new distributed locker instance
-func NewLocker(client *clientv3.Client) (*Locker, error) {
-	session, err := concurrency.NewSession(client, concurrency.WithTTL(3))
-	if err != nil {
-		return nil, fmt.Errorf("create session: %v", err)
+// NewLocker creates a new distributed lock that relies on Etcd lease
+func NewLocker(session *concurrency.Session) (*Locker, error) {
+	if session == nil {
+		return nil, errors.New("session is nil")
 	}
 
 	return &Locker{
-		client:  client,
 		session: session,
-		locks:   make(map[string]*concurrency.Mutex),
+		mutexes: make(map[string]*concurrency.Mutex),
 	}, nil
 }
 
-// Lock attempts to acquire a lock for the given key. If lock is already acquired it
-// waits til context timeout. Returns true if the lock was acquired, false if already locked,
-// and an error if something went wrong
-func (l *Locker) Lock(ctx context.Context, key string) (bool, error) {
+func (l *Locker) TryLock(ctx context.Context, key string) (bool, error) {
+	timeCtx, cancel := context.WithTimeout(ctx, time.Millisecond*50)
+	defer cancel()
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
-
-	if _, exists := l.locks[key]; exists {
-		return false, nil
-	}
 
 	mutex := concurrency.NewMutex(l.session, "/locks/"+key)
 
 	// Try to acquire the lock
-	if err := mutex.Lock(ctx); err != nil {
-		if err == context.DeadlineExceeded {
+	if err := mutex.TryLock(timeCtx); err != nil {
+		if errors.Is(err, concurrency.ErrLocked) {
 			return false, nil
 		}
 
-		return false, fmt.Errorf("lock: %v", err)
+		return false, fmt.Errorf("try lock: %v", err)
+	}
+
+	storedMutex, exists := l.mutexes[key]
+	if exists {
+		if mutex.Key() == storedMutex.Key() {
+			// Locker has been already acquired by this session
+			l.mutexes[key] = mutex
+			return false, nil
+		}
 	}
 
 	// Store the mutex for later release
-	l.locks[key] = mutex
+	l.mutexes[key] = mutex
 
 	return true, nil
 }
 
-// Release releases the lock for the given key
 func (l *Locker) Release(ctx context.Context, key string) error {
+	timeCtx, cancel := context.WithTimeout(ctx, time.Millisecond*50)
+	defer cancel()
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	mutex, exists := l.locks[key]
+	mutex, exists := l.mutexes[key]
 	if !exists {
 		return errors.New("lock not found")
 	}
 
-	if err := mutex.Unlock(ctx); err != nil {
+	if err := mutex.Unlock(timeCtx); err != nil {
 		return fmt.Errorf("release lock: %v", err)
 	}
 
-	delete(l.locks, key)
+	delete(l.mutexes, key)
 
 	return nil
-}
-
-func (l *Locker) Close() error {
-	return l.session.Close()
 }

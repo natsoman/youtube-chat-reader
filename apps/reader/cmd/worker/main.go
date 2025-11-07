@@ -11,6 +11,7 @@ import (
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
@@ -127,7 +128,13 @@ func main() {
 		return
 	}
 
-	locker, err := etcd.NewLocker(etcdClient)
+	etcdSess, err := concurrency.NewSession(etcdClient, concurrency.WithTTL(1000))
+	if err != nil {
+		log.Error("Failed to create Etcd session", "err", err)
+		return
+	}
+
+	etcdLocker, err := etcd.NewLocker(etcdSess)
 	if err != nil {
 		log.Error("Failed to create Etcd locker", "err", err)
 		return
@@ -196,7 +203,7 @@ func main() {
 	liveStreamReader, err := app.NewLiveStreamReader(
 		&google.Clock{},
 		&google.Ticker{},
-		locker,
+		etcdLocker,
 		grpcClient,
 		instLiveStreamProgressRepo,
 		instBanRepo,
