@@ -100,6 +100,12 @@ func main() {
 		return
 	}
 
+	defer func() {
+		if err = conn.Close(); err != nil {
+			log.Error("Failed to close GRPC connection", "err", err)
+		}
+	}()
+
 	grpcClient, err := youtube.NewStreamChatMessagesGRPCClient(
 		youtube.NewV3DataLiveChatMessageServiceClient(conn),
 		&google.Ticker{},
