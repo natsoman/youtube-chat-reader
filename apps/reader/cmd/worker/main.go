@@ -128,7 +128,7 @@ func main() {
 		return
 	}
 
-	etcdSess, err := concurrency.NewSession(etcdClient, concurrency.WithTTL(1000))
+	etcdSess, err := concurrency.NewSession(etcdClient, concurrency.WithTTL(15))
 	if err != nil {
 		log.Error("Failed to create Etcd session", "err", err)
 		return
