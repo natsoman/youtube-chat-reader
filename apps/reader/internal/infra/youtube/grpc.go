@@ -88,7 +88,7 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 						Part:       []string{"id", "snippet", "authorDetails"},
 					})
 				if sErr != nil {
-					l.ErrorContext(ctx, "StreamList", "err", sErr.Error())
+					l.ErrorContext(ctx, "StreamList", "npt", nextPageToken, "err", sErr.Error())
 
 					// Send error to the consumer and stop execution.
 					// cmChan will be closed, and it will inform the consumer.
@@ -97,7 +97,7 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 					return
 				}
 
-				l.DebugContext(ctx, "StreamList", "nextPageToken", nextPageToken)
+				l.DebugContext(ctx, "StreamList", "npt", nextPageToken)
 
 				func() {
 					recvThrottle, recvThrottleStop := c.recvTicker.Start(time.Second * 2)
@@ -109,11 +109,11 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 							cm, err := func() (*domain.ChatMessages, error) {
 								resp, err := streamList.Recv()
 								if err != nil {
-									l.ErrorContext(ctx, "StreamList.Recv", "err", err.Error())
+									l.ErrorContext(ctx, "StreamList.Recv", "npt", nextPageToken, "err", err.Error())
 									return nil, parseGRPCError(ctx, l, err)
 								}
 
-								l.DebugContext(ctx, "StreamList.Recv", "num_of_items", len(resp.Items))
+								l.DebugContext(ctx, "StreamList.Recv", "npt", nextPageToken, "num_of_items", len(resp.Items))
 
 								cm, err := chatMessagesFromResp(lsp.ID(), resp)
 								if err != nil {

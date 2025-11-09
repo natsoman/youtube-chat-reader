@@ -249,7 +249,7 @@ func (lsr *LiveStreamReader) readLiveStream(ctx context.Context, l *slog.Logger,
 					return true, nil
 				}
 
-				l.ErrorContext(ctx, "Error channel", "err", err)
+				l.ErrorContext(ctx, "Error streamed", "err", err)
 
 				if !oneOf(err, domain.ErrUnavailableLiveStream, domain.ErrChatOffline, domain.ErrChatNotFound) {
 					return false, err
