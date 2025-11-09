@@ -79,8 +79,6 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 				maxResults := uint32(2000)
 				liveChatId := lsp.ChatID()
 
-				l.DebugContext(ctx, "StreamList", "nextPageToken", nextPageToken)
-
 				streamList, sErr := c.grpcClient.StreamList(
 					metadata.NewOutgoingContext(ctx, metadata.Pairs("x-goog-api-key", c.apiKey())),
 					&LiveChatMessageListRequest{
@@ -90,11 +88,16 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 						Part:       []string{"id", "snippet", "authorDetails"},
 					})
 				if sErr != nil {
+					l.ErrorContext(ctx, "StreamList", "err", sErr.Error())
+
 					// Send error to the consumer and stop execution.
 					// cmChan will be closed, and it will inform the consumer.
 					errChan <- parseGRPCError(ctx, l, sErr)
+
 					return
 				}
+
+				l.DebugContext(ctx, "StreamList", "nextPageToken", nextPageToken)
 
 				func() {
 					recvThrottle, recvThrottleStop := c.recvTicker.Start(time.Second * 2)
@@ -104,12 +107,13 @@ func (c *StreamChatMessagesGRPCClient) StreamChatMessages(ctx context.Context, l
 						select {
 						case <-recvThrottle: // Receive messages
 							cm, err := func() (*domain.ChatMessages, error) {
-								l.DebugContext(ctx, "StreamList.Recv")
-
 								resp, err := streamList.Recv()
 								if err != nil {
+									l.ErrorContext(ctx, "StreamList.Recv", "err", err.Error())
 									return nil, parseGRPCError(ctx, l, err)
 								}
+
+								l.DebugContext(ctx, "StreamList.Recv", "num_of_items", len(resp.Items))
 
 								cm, err := chatMessagesFromResp(lsp.ID(), resp)
 								if err != nil {
@@ -235,12 +239,6 @@ func parseGRPCError(ctx context.Context, l *slog.Logger, err error) error {
 	st, ok := status.FromError(err)
 	if !ok {
 		return err
-	}
-
-	if st.Code() == codes.Canceled {
-		l.WarnContext(ctx, "GRPC call cancelled", "code", st.Code(), "message", st.Message(), "details", st.Details())
-	} else {
-		l.ErrorContext(ctx, "GRPC call failed", "code", st.Code(), "message", st.Message(), "details", st.Details())
 	}
 
 	switch st.Code() {
